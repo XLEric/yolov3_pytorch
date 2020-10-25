@@ -1,2 +1,2 @@
 # yolov3_pytorch
-yolov, pytorch
+yolo v3, pytorch
