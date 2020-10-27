@@ -90,11 +90,6 @@ def train(data_cfg ='cfg/voc.data',
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(i) for i in lr_step.split(",")], gamma=0.1,
                                                      last_epoch=start_epoch - 1)
 
-    # Initialize distributed training
-    if torch.cuda.device_count() > 1:
-        dist.init_process_group(backend=opt.backend, init_method=opt.dist_url, world_size=opt.world_size, rank=opt.rank)
-        model = torch.nn.parallel.DistributedDataParallel(model)
-
     # Dataset
     print('multi_scale : ',multi_scale)
     dataset = LoadImagesAndLabels(train_path, batch_size=batch_size, img_size=img_size, augment=True, multi_scale=multi_scale)
@@ -152,8 +147,6 @@ def train(data_cfg ='cfg/voc.data',
             pred = model(imgs)
 
             # Build targets
-            print('----------------->>>')
-            print(targets)
             target_list = build_targets(model, targets)
 
             # Compute loss
@@ -171,26 +164,26 @@ def train(data_cfg ='cfg/voc.data',
             for key, val in loss_dict.items():
                 mloss[key] = (mloss[key] * i + val) / (i + 1)
 
-            # print('Epoch {:3d}/{:3d}, Batch {:6d}/{:6d}, Img_size {}x{}, nTargets {}, lr {:.6f}, loss: xy {:.2f}, wh {:.2f}, '
-            #       'conf {:.2f}, cls {:.2f}, total {:.2f}, time {:.3f}s'.format(epoch, epochs - 1, i, nB - 1, multi_size[2], multi_size[3]
-            #        , nt, scheduler.get_lr()[0], mloss['xy'], mloss['wh'], mloss['conf'], mloss['cls'], mloss['total'], time.time() - t),
-            #        end = '\r')
+            print('  Epoch {:3d}/{:3d}, Batch {:6d}/{:6d}, Img_size {}x{}, nTargets {}, lr {:.6f}, loss: xy {:.2f}, wh {:.2f}, '
+                  'conf {:.2f}, cls {:.2f}, total {:.2f}, time {:.3f}s'.format(epoch, epochs - 1, i, nB - 1, multi_size[2], multi_size[3]
+                   , nt, scheduler.get_lr()[0], mloss['xy'], mloss['wh'], mloss['conf'], mloss['cls'], mloss['total'], time.time() - t),
+                   end = '\r')
 
             s = ('%8s%12s' + '%10.3g' * 7) % ('%g/%g' % (epoch, epochs - 1), '%g/%g' % (i, nB - 1), mloss['xy'],
                 mloss['wh'], mloss['conf'], mloss['cls'], mloss['total'], nt, time.time() - t)
             t = time.time()
 
-        if epoch%10 == 0 and epoch >0:
-            # Calculate mAP
-            print('\n')
-            with torch.no_grad():
-                print("-------"*5 + "testing" + "-------"*5)
-                results = test.test(cfg_model, data_cfg, batch_size=batch_size, img_size=img_size, model=model)
-            # Update best loss
-            test_loss = results[4]
-            if test_loss < best_loss:
-                best_loss = test_loss
-
+#         if epoch%10 == 0 and epoch >0:
+#             # Calculate mAP
+#             print('\n')
+#             with torch.no_grad():
+#                 print("-------"*5 + "testing" + "-------"*5)
+#                 results = test.test(cfg_model, data_cfg, batch_size=batch_size, img_size=img_size, model=model)
+#             # Update best loss
+#             test_loss = results[4]
+#             if test_loss < best_loss:
+#                 best_loss = test_loss
+        print()
         if True:
             # Create checkpoint
             chkpt = {'epoch': epoch,

@@ -187,7 +187,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         # if self.multi_scale and (index % self.batch_size == 0) and index != 0:
         if self.multi_scale and (self.scale_index % self.batch_size == 0)and self.scale_index != 0:
-            self.img_size = random.choice(range(12, 17)) * 32
+            self.img_size = random.choice(range(11, 18)) * 32
             # print("++++++ change img_size, index:", self.img_size, index)
         if self.multi_scale:
             self.scale_index += 1
@@ -400,47 +400,3 @@ def convert_images2bmp():
             '/Users/glennjocher/PycharmProjects/', '../')
         with open(label_path.replace('5k', '5k_bmp'), 'w') as file:
             file.write(lines)
-
-
-if __name__ == "__main__":
-    img_size = 416
-    dataset = LoadImagesAndLabels("../data/train.txt", batch_size=16, img_size=img_size, augment=True, multi_scale=False)
-    dataloader = DataLoader(dataset, batch_size=16, num_workers=1, shuffle=False, pin_memory=False, collate_fn=dataset.collate_fn)
-    with open("../cfg/voc.names", 'r') as f:
-        label_map = f.readlines()
-
-    for i in range(len(dataset)):
-        imgs, targets, _, _ = dataset[i]
-        print("-----------------")
-        print("img shape()", np.shape(imgs))
-        print("targets shape()", targets)
-        boxes = xywh2xyxy(targets[targets[:, 0] == 0, 2:6]).numpy() * int(imgs.size()[-1])
-        lable = targets[targets[:, 0] == 0, 1].numpy()
-
-        img_c_h_w = imgs.numpy().transpose(1, 2, 0)  # h x w x c  -->  c x h x w
-        img_bgr_255 = cv2.cvtColor(img_c_h_w*255, cv2.COLOR_BGR2RGB)
-        for index, box in enumerate(boxes):
-            lab = label_map[int(lable[index])].strip()
-            print("label: {}, box: {}".format(lab, box))
-            cv2.rectangle(img_bgr_255, (box[0], box[1]), (box[2], box[3]), (0,0,255), 1)
-            cv2.putText(img_bgr_255, lab, (max(20, int(box[0])), int(box[1])), fontFace=2, fontScale=1.5, color=(0,0,255))
-        cv2.imwrite("cvimg_%d.jpg" % i, img_bgr_255)
-        if i == 20:
-            break
-
-    # for i, (imgs, targets, img_paths, _) in enumerate(dataloader):
-    #     print(i)
-    #     print(targets)
-    #     # Plot images with bounding boxes
-    #     plot_images = True
-    #     if plot_images:
-    #         fig = plt.figure(figsize=(20, 20))
-    #         for ip in range(16):
-    #             boxes = xywh2xyxy(targets[targets[:, 0] == ip, 2:6]).numpy().T * img_size
-    #             print(np.shape(imgs[ip].numpy().transpose(1, 2, 0)))
-    #             print(np.shape(boxes))
-    #             plt.subplot(4, 4, ip + 1).imshow(imgs[ip].numpy().transpose(1, 2, 0))
-    #             plt.plot(boxes[[0, 2, 2, 0, 0]], boxes[[1, 1, 3, 3, 1]], '.-')
-    #             plt.axis('off')
-    #         fig.tight_layout()
-    #         fig.savefig('batch_%g.jpg' % i, dpi=fig.dpi)
